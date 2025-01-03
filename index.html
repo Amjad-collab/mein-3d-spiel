@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3-in-1 Spielesammlung</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #282c34;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            margin-top: 50px;
+        }
+        .game-selection, .game-container {
+            display: none;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        canvas {
+            display: block;
+            margin: auto;
+            border: 2px solid white;
+        }
+        .back-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: red;
+        }
+        .instructions {
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="startPage">
+    <h1>Willkommen zur Spielesammlung</h1>
+    <p>Wähle ein Spiel aus, um zu starten!</p>
+    <button onclick="selectGame('dino')">Dino-Spiel</button>
+    <button onclick="selectGame('snake')">Snake-Spiel</button>
+    <button onclick="selectGame('extra')">Pong-Spiel</button>
+</div>
+
+<div class="game-container" id="gameContainer">
+    <button class="back-button" onclick="backToStart()">Zurück</button>
+    <div class="instructions" id="gameInstructions"></div>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+</div>
+
+<script>
+    const startPage = document.getElementById("startPage");
+    const gameContainer = document.getElementById("gameContainer");
+    const gameCanvas = document.getElementById("gameCanvas");
+    const gameInstructions = document.getElementById("gameInstructions");
+    const ctx = gameCanvas.getContext("2d");
+
+    let currentGame = null;
+
+    function selectGame(game) {
+        currentGame = game;
+        startPage.style.display = "none";
+        gameContainer.style.display = "block";
+        loadGame(game);
+    }
+
+    function backToStart() {
+        currentGame = null;
+        startPage.style.display = "block";
+        gameContainer.style.display = "none";
+        ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+    }
+
+    function loadGame(game) {
+        switch (game) {
+            case "dino":
+                gameInstructions.innerHTML = `
+                    <h2>Dino-Spiel</h2>
+                    <p>Springe über Hindernisse, um so lange wie möglich zu überleben!</p>
+                    <p><strong>Steuerung:</strong> Drücke die Leertaste, um zu springen.</p>
+                `;
+                startDinoGame();
+                break;
+            case "snake":
+                gameInstructions.innerHTML = `
+                    <h2>Snake-Spiel</h2>
+                    <p>Führe die Schlange, um die Früchte zu essen!</p>
+                    <p><strong>Steuerung:</strong> Pfeiltasten, um die Schlange zu bewegen.</p>
+                `;
+                startSnakeGame();
+                break;
+            case "extra":
+                gameInstructions.innerHTML = `
+                    <h2>Pong-Spiel</h2>
+                    <p>Spiele gegen den Computer und versuche, den Ball zu treffen!</p>
+                    <p><strong>Steuerung:</strong> Pfeiltasten (oben/unten), um das Paddle zu bewegen.</p>
+                `;
+                startPongGame();
+                break;
+        }
+    }
+
+    function startDinoGame() {
+        let dino = { x: 50, y: 340, width: 30, height: 30, jump: false, jumpPower: 0 };
+        let obstacle = { x: 800, y: 350, width: 20, height: 30 };
+        let speed = 3;
+        let gameOver = false;
+
+        function update() {
+            if (gameOver) return;
+            ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+            // Dino
+            ctx.fillStyle = "blue";
+            ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
+
+            if (dino.jump) {
+                dino.y -= dino.jumpPower;
+                dino.jumpPower -= 1;
+                if (dino.y >= 340) {
+                    dino.y = 340;
+                    dino.jump = false;
+                }
+            }
+
+            // Obstacle
+            ctx.fillStyle = "red";
+            obstacle.x -= speed;
+            ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+
+            if (
+                dino.x < obstacle.x + obstacle.width &&
+                dino.x + dino.width > obstacle.x &&
+                dino.y < obstacle.y + obstacle.height &&
+                dino.y + dino.height > obstacle.y
+            ) {
+                gameOver = true;
+                alert("Spiel vorbei! Punkte: " + Math.floor(performance.now() / 1000));
+                backToStart();
+            }
+
+            if (obstacle.x + obstacle.width < 0) {
+                obstacle.x = 800;
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === " " && !dino.jump) {
+                dino.jump = true;
+                dino.jumpPower = 20;
+            }
+        });
+
+        update();
+    }
+
+    function startSnakeGame() {
+        let snake = [{ x: 10, y: 10 }];
+        let direction = "right";
+        let food = { x: 15, y: 15 };
+        let gameOver = false;
+
+        function update() {
+            if (gameOver) return;
+            ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+            // Snake
+            ctx.fillStyle = "green";
+            snake.forEach((segment) => ctx.fillRect(segment.x * 20, segment.y * 20, 20, 20));
+
+            // Food
+            ctx.fillStyle = "red";
+            ctx.fillRect(food.x * 20, food.y * 20, 20, 20);
+
+            const head = { ...snake[0] };
+            if (direction === "right") head.x++;
+            if (direction === "left") head.x--;
+            if (direction === "up") head.y--;
+            if (direction === "down") head.y++;
+
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                food = { x: Math.floor(Math.random() * 40), y: Math.floor(Math.random() * 20) };
+            } else {
+                snake.pop();
+            }
+
+            if (
+                head.x < 0 ||
+                head.x >= 40 ||
+                head.y < 0 ||
+                head.y >= 20 ||
+                snake.slice(1).some((segment) => segment.x === head.x && segment.y === head.y)
+            ) {
+                gameOver = true;
+                alert("Spiel vorbei! Punkte: " + snake.length);
+                backToStart();
+            }
+
+            setTimeout(update, 150);
+        }
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "ArrowUp" && direction !== "down") direction = "up";
+            if (e.key === "ArrowDown" && direction !== "up") direction = "down";
+            if (e.key === "ArrowLeft" && direction !== "right") direction = "left";
+            if (e.key === "ArrowRight" && direction !== "left") direction = "right";
+        });
+
+        update();
+    }
+
+    function startPongGame() {
+        let paddle = { x: 20, y: 150, width: 10, height: 100 };
+        let ball = { x: 400, y: 200, radius: 10, dx: 3, dy: 3 };
+        let gameOver = false;
+
+        function update() {
+            if (gameOver) return;
+            ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+            // Paddle
+            ctx.fillStyle = "white";
+            ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+
+            // Ball
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = "yellow";
+            ctx.fill();
+
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            if (ball.y - ball.radius < 0 || ball.y + ball.radius > gameCanvas.height) ball.dy *= -1;
+
+            if (
+                ball.x - ball.radius < paddle.x + paddle.width &&
+                ball.y > paddle.y &&
+                ball.y < paddle.y + paddle.height
+            ) {
+                ball.dx *= -1;
+            }
+
+            if (ball.x - ball.radius < 0) {
+                gameOver = true;
+                alert("Spiel vorbei! Du hast verloren.");
+                backToStart();
+            }
+
+            if (ball.x + ball.radius > gameCanvas.width) ball.dx *= -1;
+
+            requestAnimationFrame(update);
+        }
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "ArrowUp" && paddle.y > 0) paddle.y -= 20;
+            if (e.key === "ArrowDown" && paddle.y + paddle.height < gameCanvas.height) paddle.y += 20;
+        });
+
+        update();
+    }
+</script>
+
+</body>
+</html>
